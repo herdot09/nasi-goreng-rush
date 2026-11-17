@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NASI GORENG RUSH - Bandung</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui}
+body{background:#1a0f00;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:auto;padding:12px}
+#wrap{width:960px;max-width:98vw}
+#top{display:flex;justify-content:space-between;align-items:center;background:#ff6b00;color:#fff;padding:10px 16px;border-radius:14px 14px 0 0}
+#top b{font-size:20px} #top span{background:#fff;color:#222;padding:4px 10px;border-radius:20px;font-weight:700;margin-left:4px}
+canvas{background:#ffe9b8;display:block;width:100%;height:auto;border:4px solid #ff6b00;border-top:0;border-radius:0 0 14px 14px}
+#info{text-align:center;color:#ffd9a0;margin-top:8px;font-size:14px;line-height:1.6}
+button{background:#ff6b00;color:#fff;border:0;padding:12px 22px;border-radius:99px;font-weight:800;cursor:pointer;margin-top:8px;font-size:16px}
+</style></head><body><div id="wrap">
+<div id="top"><b>NASI GORENG RUSH</b><div><span id="score">Skor 0</span><span id="lives">❤️❤️❤️</span><span id="level">LV 1</span></div></div>
+<canvas id="c" width="960" height="540"></canvas>
+<div id="info">Gerak: <b>Panah Kiri/Kanan</b> atau <b>Mouse</b> | Tangkap Telur, Ayam, Bawang - Hindari Cabe & Api | Spasi = Dash<br><button onclick="startGame()">▶ MULAI MAIN</button> <div id="msg"></div></div>
+</div><script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+let player={x:480,y:470,w:90,speed:8},items=[],score=0,lives=3,level=1,playing=false,keys={},combo=0,time=0,high=localStorage.getItem('ngr_high')||0;
+let audioCtx=null; function beep(f,d=0.1,t='square'){try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();let o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t;o.frequency.value=f;g.gain.value=0.08;o.connect(g);g.connect(audioCtx.destination);o.start();g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);o.stop(audioCtx.currentTime+d);}catch(e){}}
+function startGame(){score=0;lives=3;level=1;items=[];playing=true;combo=0;time=0;document.getElementById('msg').innerHTML='';document.getElementById('score').textContent='Skor 0';updateLives();loop();}
+function updateLives(){document.getElementById('lives').textContent='❤'.repeat(lives)+'♡'.repeat(3-lives);document.getElementById('level').textContent='LV '+level;}
+function spawn(){let good=Math.random()>0.28;let types=good?['egg','chicken','onion','garlic']:['chili','fire'];let type=types[Math.floor(Math.random()*types.length)];items.push({x:40+Math.random()*880,y:-30,type,vy:2+level*0.6+Math.random()*1.5});}
+function drawItem(it){
+ctx.save();ctx.translate(it.x,it.y);
+if(it.type==='egg'){ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(0,0,22,28,0,0,7);ctx.fill();ctx.strokeStyle='#ddd';ctx.stroke();ctx.fillStyle='#ffcc00';ctx.beginPath();ctx.arc(0,4,10,0,7);ctx.fill();}
+else if(it.type==='chicken'){ctx.fillStyle='#8B4513';ctx.beginPath();ctx.arc(0,0,20,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(-14,-6,10,22);ctx.fillStyle='#ff6b00';ctx.beginPath();ctx.arc(12,-8,6,0,7);ctx.fill();}
+else if(it.type==='onion'){ctx.fillStyle='#e8b4f0';ctx.beginPath();ctx.arc(0,0,20,0,7);ctx.fill();ctx.fillStyle='#c084fc';ctx.beginPath();ctx.arc(0,0,12,0,7);ctx.fill();}
+else if(it.type==='garlic'){ctx.fillStyle='#f5f5f5';ctx.beginPath();ctx.arc(0,0,18,0,7);ctx.fill();ctx.strokeStyle='#ccc';ctx.stroke();}
+else if(it.type==='chili'){ctx.fillStyle='#ff0000';ctx.beginPath();ctx.ellipse(0,0,8,24,0.4,0,7);ctx.fill();ctx.fillStyle='#22c55e';ctx.fillRect(-2,-30,6,10);}
+else if(it.type==='fire'){ctx.fillStyle='#ff6b00';ctx.beginPath();ctx.arc(0,0,18,0,7);ctx.fill();ctx.fillStyle='#ffcc00';ctx.beginPath();ctx.arc(0,4,10,0,7);ctx.fill();}
+ctx.restore();
+}
+function loop(){if(!playing)return;time++;if(time%Math.max(18,45-level*3)===0)spawn();if(keys['ArrowLeft']||keys['a'])player.x-=player.speed;if(keys['ArrowRight']||keys['d'])player.x+=player.speed;player.x=Math.max(40,Math.min(920,player.x));
+ctx.clearRect(0,0,960,540);
+ctx.fillStyle='#7ec850';ctx.fillRect(0,0,960,540);ctx.fillStyle='#ffe9b8';ctx.fillRect(0,60,960,420);ctx.fillStyle='#fff';for(let i=0;i<6;i++)ctx.fillRect(i*170,280,90,6);
+ctx.fillStyle='#fff';ctx.font='bold 22px sans-serif';ctx.textAlign='left';ctx.fillText('BANDUNG',16,36);ctx.textAlign='right';ctx.fillText('High: '+high,944,36);
+for(let i=items.length-1;i>=0;i--){let it=items[i];it.y+=it.vy;drawItem(it);
+if(it.y>450&&it.y<530&&Math.abs(it.x-player.x)<55){items.splice(i,1);if(it.type==='chili'||it.type==='fire'){lives--;combo=0;beep(150,0.25,'sawtooth');updateLives();if(lives<=0)gameOver();}else{score+=10+combo*2;combo++;if(score>high){high=score;localStorage.setItem('ngr_high',high);}beep(500+combo*40,0.08);if(score>level*120){level++;beep(800,0.2);document.getElementById('level').textContent='LV '+level;}document.getElementById('score').textContent='Skor '+score+' Combo x'+combo;}}else if(it.y>560){items.splice(i,1);if(it.type!=='chili'&&it.type!=='fire')combo=0;}}
+// WAJAN digambar, bukan emoji - biar ga error
+ctx.fillStyle='#333';ctx.beginPath();ctx.ellipse(player.x,player.y+10,52,16,0,0,7);ctx.fill();ctx.fillStyle='#ffcc00';ctx.beginPath();ctx.ellipse(player.x,player.y+6,44,10,0,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(player.x-10,player.y,12,8,0,0,7);ctx.fill();ctx.fillStyle='#ffcc00';ctx.beginPath();ctx.arc(player.x-10,player.y,5,0,7);ctx.fill();ctx.fillStyle='#333';ctx.fillRect(player.x+48,player.y+6,28,6);
+ctx.fillStyle='#222';ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.fillText('ABANG',player.x,player.y+48);
+if(combo>=3){ctx.fillStyle='#ff6b00';ctx.font='bold 18px sans-serif';ctx.fillText('COMBO x'+combo,player.x,player.y-30);}
+requestAnimationFrame(loop);}
+function gameOver(){playing=false;document.getElementById('msg').innerHTML='<br><b>GAME OVER!</b> Skor kamu '+score+' | High: '+high+'<br>Klik MULAI MAIN buat coba lagi!';beep(200,0.5,'sawtooth');}
+document.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){player.speed=14;setTimeout(()=>player.speed=8,300);e.preventDefault();}});
+document.addEventListener('keyup',e=>keys[e.key]=false);
+cv.addEventListener('mousemove',e=>{let r=cv.getBoundingClientRect();player.x=(e.clientX-r.left)/r.width*960;});
+cv.addEventListener('click',()=>{if(!playing)startGame();});
+</script></body></html>
